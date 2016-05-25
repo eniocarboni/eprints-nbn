@@ -22,16 +22,17 @@ push @{$c->{fields}->{eprint}},
 sub EPrints::Extras::nbnRenderValue {
 	my( $session, $field, $value ) = @_;
 	my $span = $session->make_element("span", class=>"nbn");
-	my $url = "http://nbn.depositolegale.it/$value;"
+	my $url = "http://nbn.depositolegale.it/$value";
 	my $nbnlink = $session->render_link($url,"_blank");
 	$nbnlink->appendChild( $session->make_text($value));
 	$span->appendChild( $nbnlink );
 	return $span;
 }
 
-$c->add_trigger(EPrints::Const::EP_TRIGGER_BEFORE_COMMIT, sub {
-	my ($eprint,$changed) = @_;
+$c->add_dataset_trigger( "eprint",EP_TRIGGER_BEFORE_COMMIT, sub {
+	my (%params) = @_;
 	my ($nbncheck,$metadataurl,$ret,$status,$repo,$host,$oai_archive_id,$nbnwebservice);
+	my $eprint=$params{dataobj};
 	if ($eprint->is_set("nbncheck") && 
 			$eprint->get_value("nbncheck") eq 'TRUE' && 
 			!$eprint->is_set("nbn") ) {
@@ -52,10 +53,8 @@ $c->add_trigger(EPrints::Const::EP_TRIGGER_BEFORE_COMMIT, sub {
 		if ($ret eq '201') {
 			$eprint->set_value("nbn", $status->{'nbn'});
 		} 
-		else {
-			$eprint->set_value("nbnlog", $status->{'status'});
-			$eprint->set_value("nbncheck", "FALSE");
-		}
+		$eprint->set_value("nbnlog", $status->{'status'});
+		$eprint->set_value("nbncheck", "FALSE");
 	}
 	return EP_TRIGGER_OK;
 });
